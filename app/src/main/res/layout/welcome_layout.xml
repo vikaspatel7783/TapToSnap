@@ -33,4 +33,13 @@
             android:layout_marginBottom="30dp"
             android:text="LET'S GO!"/>
     </RelativeLayout>
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        style="?android:attr/progressBarStyle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminateTint="@color/white"
+        android:visibility="gone"
+        android:layout_centerInParent="true"/>
 </RelativeLayout>
