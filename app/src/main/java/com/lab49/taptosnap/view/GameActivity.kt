@@ -15,10 +15,12 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.MutableLiveData
+import com.lab49.taptosnap.GameTimer
 import com.lab49.taptosnap.R
 import com.lab49.taptosnap.data.ResultStatus
-import com.lab49.taptosnap.model.ItemMatchResponse
 import com.lab49.taptosnap.model.ItemMatchRequest
+import com.lab49.taptosnap.model.ItemMatchResponse
 import com.lab49.taptosnap.view.Helper.Companion.observeOnce
 import com.lab49.taptosnap.viewmodel.GameViewModel
 
@@ -36,22 +38,29 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     private lateinit var gameItem3TextView: TextView
     private lateinit var gameItem4TextView: TextView
 
+    private lateinit var countDownTimer: TextView
+
     private val REQUEST_IMAGE_CAPTURE_1 = 1
     private val REQUEST_IMAGE_CAPTURE_2 = 2
     private val REQUEST_IMAGE_CAPTURE_3 = 3
     private val REQUEST_IMAGE_CAPTURE_4 = 4
 
+    private var gameTimeElapsed = false
+    private val gameTimerObserver = MutableLiveData<Long>()
+    private val gameTimer = GameTimer(tickObserver = gameTimerObserver)
     private val gameViewModel: GameViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.game_layout)
 
-        init()
+        initViewReference()
         renderItemListResponse()
+        initGameTimer()
     }
 
-    private fun init() {
+
+    private fun initViewReference() {
 
         item1RootView = findViewById(R.id.game_item_1_container)
         item1RootView.setOnClickListener(this)
@@ -69,6 +78,18 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
         gameItem2TextView = item2RootView.findViewById(R.id.template_item_name)
         gameItem3TextView = item3RootView.findViewById(R.id.template_item_name)
         gameItem4TextView = item4RootView.findViewById(R.id.template_item_name)
+
+        countDownTimer = findViewById(R.id.game_text_timer)
+    }
+
+    private fun initGameTimer() {
+        gameTimer.start()
+        gameTimerObserver.observe(this, { secondsRemaining ->
+            if (secondsRemaining == 0L) {
+                gameTimeElapsed = true
+            }
+            countDownTimer.text = "$secondsRemaining.toString() seconds to go!"
+        })
     }
 
     private fun renderItemListResponse() {
@@ -88,6 +109,10 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     }
 
     private fun startCameraToCaptureImage(requestId: Int) {
+        if (gameTimeElapsed) {
+            Toast.makeText(this, "Game timer elapsed. Please re-open app to play again", Toast.LENGTH_LONG).show()
+            return
+        }
         val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         try {
             startActivityForResult(takePictureIntent, requestId)
@@ -171,4 +196,5 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
             else -> throw RuntimeException("Unknown view found")
         }
     }
+
 }
