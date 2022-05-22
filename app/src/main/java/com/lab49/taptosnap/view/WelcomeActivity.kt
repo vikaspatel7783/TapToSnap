@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity
 import com.lab49.taptosnap.R
 import com.lab49.taptosnap.data.CachedData
 import com.lab49.taptosnap.data.ResultStatus
+import com.lab49.taptosnap.model.ItemResponse
 import com.lab49.taptosnap.viewmodel.WelcomeViewModel
 import java.net.UnknownHostException
 
@@ -33,7 +34,7 @@ class WelcomeActivity: AppCompatActivity() {
 
                 when (itemListResponse) {
                     is ResultStatus.Success -> {
-                        CachedData.itemList = itemListResponse.data
+                        CachedData.itemList = itemListResponse.data as List<ItemResponse>
                         startActivity(Intent(this, GameActivity::class.java));
                         finish()
                     }

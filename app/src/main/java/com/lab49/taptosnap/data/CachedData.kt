@@ -1,9 +1,9 @@
 package com.lab49.taptosnap.data
 
-import com.lab49.taptosnap.model.Item
+import com.lab49.taptosnap.model.ItemResponse
 
 object CachedData {
 
-    var itemList: List<Item> = emptyList()
+    var itemList: List<ItemResponse> = emptyList()
 
 }

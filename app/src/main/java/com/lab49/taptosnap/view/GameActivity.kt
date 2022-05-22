@@ -5,6 +5,9 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.provider.MediaStore
+import android.util.Base64
+import android.util.Base64.NO_WRAP
+import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.RelativeLayout
@@ -13,9 +16,15 @@ import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.lab49.taptosnap.R
+import com.lab49.taptosnap.data.ResultStatus
+import com.lab49.taptosnap.model.ItemMatchResponse
+import com.lab49.taptosnap.model.ItemMatchRequest
+import com.lab49.taptosnap.view.Helper.Companion.observeOnce
 import com.lab49.taptosnap.viewmodel.GameViewModel
 
 class GameActivity: AppCompatActivity(), View.OnClickListener {
+
+    private val MY_TAG = GameActivity::class.java.simpleName
 
     private lateinit var item1RootView: RelativeLayout
     private lateinit var item2RootView: RelativeLayout
@@ -90,11 +99,34 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         if (resultCode == RESULT_OK) {
             val imageBitmap = data?.extras?.get("data") as Bitmap
+            val imageByteArray = Helper.bitmapToByteArray(imageBitmap)
+
             when (requestCode) {
-                REQUEST_IMAGE_CAPTURE_1 -> setCapturedImage(item1RootView, imageBitmap)
-                REQUEST_IMAGE_CAPTURE_2 -> setCapturedImage(item2RootView, imageBitmap)
-                REQUEST_IMAGE_CAPTURE_3 -> setCapturedImage(item3RootView, imageBitmap)
-                REQUEST_IMAGE_CAPTURE_4 -> setCapturedImage(item4RootView, imageBitmap)
+                REQUEST_IMAGE_CAPTURE_1 -> {
+                    setCapturedImage(item1RootView, imageBitmap)
+                    verifyImageWithServer(item1RootView, ItemMatchRequest(
+                            imageLabel = gameItem1TextView.text.toString(),
+                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
+                }
+                REQUEST_IMAGE_CAPTURE_2 -> {
+                    setCapturedImage(item2RootView, imageBitmap)
+                    verifyImageWithServer(item2RootView, ItemMatchRequest(
+                            imageLabel = gameItem2TextView.text.toString(),
+                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
+                }
+
+                REQUEST_IMAGE_CAPTURE_3 -> {
+                    setCapturedImage(item3RootView, imageBitmap)
+                    verifyImageWithServer(item3RootView, ItemMatchRequest(
+                            imageLabel = gameItem3TextView.text.toString(),
+                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
+                }
+                REQUEST_IMAGE_CAPTURE_4 -> {
+                    setCapturedImage(item4RootView, imageBitmap)
+                    verifyImageWithServer(item4RootView, ItemMatchRequest(
+                            imageLabel = gameItem4TextView.text.toString(),
+                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
+                }
                 else -> throw RuntimeException("Unknown camera request id received")
             }
         }
@@ -102,6 +134,32 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
 
     private fun setCapturedImage(rootView: RelativeLayout, imageBitmap: Bitmap) {
         rootView.findViewById<ImageView>(R.id.template_imageview).setImageBitmap(imageBitmap)
+    }
+
+    private fun verifyImageWithServer(rootView: RelativeLayout, itemMatchRequest: ItemMatchRequest) {
+        Log.d(MY_TAG, "Match Request sent for ${itemMatchRequest.imageLabel}")
+        gameViewModel.matchItem(itemMatchRequest)
+        .observeOnce(this, { resultStatus ->
+            updateUIPostVerify(rootView, resultStatus)
+        })
+    }
+
+    private fun updateUIPostVerify(rootView: RelativeLayout, resultStatus: ResultStatus) {
+        when (resultStatus) {
+            is ResultStatus.Success -> {
+                Log.d(MY_TAG, "Match response received ${resultStatus.data}")
+                if ((resultStatus.data as ItemMatchResponse).matched) {
+                    rootView.setBackgroundColor(this.getColor(R.color.green))
+                } else {
+                    rootView.setBackgroundColor(this.getColor(R.color.red))
+                }
+            }
+            is ResultStatus.Failure -> {
+                rootView.setBackgroundColor(this.getColor(R.color.red))
+                System.out.println(resultStatus.exception)
+                Toast.makeText(this, "Error in verify item", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onClick(v: View?) {
