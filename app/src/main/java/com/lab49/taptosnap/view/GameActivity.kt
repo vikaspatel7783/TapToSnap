@@ -1,23 +1,36 @@
 package com.lab49.taptosnap.view
 
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
-import android.view.ViewGroup
-import android.widget.Button
+import android.provider.MediaStore
+import android.view.View
+import android.widget.ImageView
 import android.widget.RelativeLayout
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import com.lab49.taptosnap.R
-import com.lab49.taptosnap.data.CachedData
 import com.lab49.taptosnap.viewmodel.GameViewModel
-import com.lab49.taptosnap.viewmodel.WelcomeViewModel
 
-class GameActivity: AppCompatActivity() {
+class GameActivity: AppCompatActivity(), View.OnClickListener {
+
+    private lateinit var item1RootView: RelativeLayout
+    private lateinit var item2RootView: RelativeLayout
+    private lateinit var item3RootView: RelativeLayout
+    private lateinit var item4RootView: RelativeLayout
 
     private lateinit var gameItem1TextView: TextView
     private lateinit var gameItem2TextView: TextView
     private lateinit var gameItem3TextView: TextView
     private lateinit var gameItem4TextView: TextView
+
+    private val REQUEST_IMAGE_CAPTURE_1 = 1
+    private val REQUEST_IMAGE_CAPTURE_2 = 2
+    private val REQUEST_IMAGE_CAPTURE_3 = 3
+    private val REQUEST_IMAGE_CAPTURE_4 = 4
 
     private val gameViewModel: GameViewModel by viewModels()
 
@@ -29,19 +42,75 @@ class GameActivity: AppCompatActivity() {
         renderItemListResponse()
     }
 
-    fun init() {
-        gameItem1TextView = findViewById<RelativeLayout>(R.id.game_item_1_container).findViewById<TextView>(R.id.template_item_name)
-        gameItem2TextView = findViewById<RelativeLayout>(R.id.game_item_2_container).findViewById<TextView>(R.id.template_item_name)
-        gameItem3TextView = findViewById<RelativeLayout>(R.id.game_item_3_container).findViewById<TextView>(R.id.template_item_name)
-        gameItem4TextView = findViewById<RelativeLayout>(R.id.game_item_4_container).findViewById<TextView>(R.id.template_item_name)
+    private fun init() {
+
+        item1RootView = findViewById(R.id.game_item_1_container)
+        item1RootView.setOnClickListener(this)
+
+        item2RootView = findViewById(R.id.game_item_2_container)
+        item2RootView.setOnClickListener(this)
+
+        item3RootView = findViewById(R.id.game_item_3_container)
+        item3RootView.setOnClickListener(this)
+
+        item4RootView = findViewById(R.id.game_item_4_container)
+        item4RootView.setOnClickListener(this)
+
+        gameItem1TextView = item1RootView.findViewById(R.id.template_item_name)
+        gameItem2TextView = item2RootView.findViewById(R.id.template_item_name)
+        gameItem3TextView = item3RootView.findViewById(R.id.template_item_name)
+        gameItem4TextView = item4RootView.findViewById(R.id.template_item_name)
     }
 
-    fun renderItemListResponse() {
+    private fun renderItemListResponse() {
         gameViewModel.getItemList().let {
+            item1RootView.tag = it[0]
             gameItem1TextView.text = it[0].name
+
             gameItem2TextView.text = it[1].name
+            item2RootView.tag = it[1]
+
             gameItem3TextView.text = it[2].name
+            item3RootView.tag = it[2]
+
             gameItem4TextView.text = it[3].name
+            item4RootView.tag = it[3]
+        }
+    }
+
+    private fun startCameraToCaptureImage(requestId: Int) {
+        val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+        try {
+            startActivityForResult(takePictureIntent, requestId)
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "Error in opening camera", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (resultCode == RESULT_OK) {
+            val imageBitmap = data?.extras?.get("data") as Bitmap
+            when (requestCode) {
+                REQUEST_IMAGE_CAPTURE_1 -> setCapturedImage(item1RootView, imageBitmap)
+                REQUEST_IMAGE_CAPTURE_2 -> setCapturedImage(item2RootView, imageBitmap)
+                REQUEST_IMAGE_CAPTURE_3 -> setCapturedImage(item3RootView, imageBitmap)
+                REQUEST_IMAGE_CAPTURE_4 -> setCapturedImage(item4RootView, imageBitmap)
+                else -> throw RuntimeException("Unknown camera request id received")
+            }
+        }
+    }
+
+    private fun setCapturedImage(rootView: RelativeLayout, imageBitmap: Bitmap) {
+        rootView.findViewById<ImageView>(R.id.template_imageview).setImageBitmap(imageBitmap)
+    }
+
+    override fun onClick(v: View?) {
+        when ((v as RelativeLayout).id) {
+            R.id.game_item_1_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_1)
+            R.id.game_item_2_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_2)
+            R.id.game_item_3_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_3)
+            R.id.game_item_4_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_4)
+            else -> throw RuntimeException("Unknown view found")
         }
     }
 }

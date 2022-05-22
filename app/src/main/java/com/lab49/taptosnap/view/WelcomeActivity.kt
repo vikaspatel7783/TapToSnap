@@ -12,6 +12,7 @@ import com.lab49.taptosnap.R
 import com.lab49.taptosnap.data.CachedData
 import com.lab49.taptosnap.data.ResultStatus
 import com.lab49.taptosnap.viewmodel.WelcomeViewModel
+import java.net.UnknownHostException
 
 class WelcomeActivity: AppCompatActivity() {
 
@@ -38,7 +39,11 @@ class WelcomeActivity: AppCompatActivity() {
                     }
 
                     is ResultStatus.Failure -> {
-                        Toast.makeText(this, "Problem in getting item list", Toast.LENGTH_LONG).show()
+                        if (itemListResponse.exception is UnknownHostException) {
+                            Toast.makeText(this, "Please check your Internet connectivity", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this, "Problem in getting item list", Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
             })

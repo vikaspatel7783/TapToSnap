@@ -1,5 +1,6 @@
 package com.lab49.taptosnap.data
 
+import com.lab49.taptosnap.model.Item
 import com.lab49.taptosnap.network.Lab49Service
 
 class DataRepository {
@@ -18,6 +19,9 @@ class DataRepository {
         }
     }
 
+    fun getCachedItemList(): List<Item> {
+        return CachedData.itemList
+    }
 
 
 }
