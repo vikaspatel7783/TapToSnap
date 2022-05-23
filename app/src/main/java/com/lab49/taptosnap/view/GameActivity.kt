@@ -9,10 +9,7 @@ import android.util.Base64
 import android.util.Base64.NO_WRAP
 import android.util.Log
 import android.view.View
-import android.widget.ImageView
-import android.widget.RelativeLayout
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.MutableLiveData
@@ -21,6 +18,7 @@ import com.lab49.taptosnap.R
 import com.lab49.taptosnap.data.ResultStatus
 import com.lab49.taptosnap.model.ItemMatchRequest
 import com.lab49.taptosnap.model.ItemMatchResponse
+import com.lab49.taptosnap.model.ItemResponse
 import com.lab49.taptosnap.view.Helper.Companion.observeOnce
 import com.lab49.taptosnap.viewmodel.GameViewModel
 
@@ -33,19 +31,16 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     private lateinit var item3RootView: RelativeLayout
     private lateinit var item4RootView: RelativeLayout
 
-    private lateinit var gameItem1TextView: TextView
-    private lateinit var gameItem2TextView: TextView
-    private lateinit var gameItem3TextView: TextView
-    private lateinit var gameItem4TextView: TextView
+    private lateinit var progressBar1: ProgressBar
+    private lateinit var progressBar2: ProgressBar
+    private lateinit var progressBar3: ProgressBar
+    private lateinit var progressBar4: ProgressBar
 
     private lateinit var countDownTimer: TextView
 
-    private val REQUEST_IMAGE_CAPTURE_1 = 1
-    private val REQUEST_IMAGE_CAPTURE_2 = 2
-    private val REQUEST_IMAGE_CAPTURE_3 = 3
-    private val REQUEST_IMAGE_CAPTURE_4 = 4
-
     private var gameTimeElapsed = false
+
+    private val lookUp = hashMapOf<Int, RelativeLayout>()
     private val gameTimerObserver = MutableLiveData<Long>()
     private val gameTimer = GameTimer(tickObserver = gameTimerObserver)
     private val gameViewModel: GameViewModel by viewModels()
@@ -74,12 +69,11 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
         item4RootView = findViewById(R.id.game_item_4_container)
         item4RootView.setOnClickListener(this)
 
-        gameItem1TextView = item1RootView.findViewById(R.id.template_item_name)
-        gameItem2TextView = item2RootView.findViewById(R.id.template_item_name)
-        gameItem3TextView = item3RootView.findViewById(R.id.template_item_name)
-        gameItem4TextView = item4RootView.findViewById(R.id.template_item_name)
-
         countDownTimer = findViewById(R.id.game_text_timer)
+        progressBar1 = item1RootView.findViewById(R.id.progressBar)
+        progressBar2 = item2RootView.findViewById(R.id.progressBar)
+        progressBar3 = item3RootView.findViewById(R.id.progressBar)
+        progressBar4 = item4RootView.findViewById(R.id.progressBar)
     }
 
     private fun initGameTimer() {
@@ -88,23 +82,27 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
             if (secondsRemaining == 0L) {
                 gameTimeElapsed = true
             }
-            countDownTimer.text = "$secondsRemaining.toString() seconds to go!"
+            countDownTimer.text = "${secondsRemaining} seconds remains!"
         })
     }
 
     private fun renderItemListResponse() {
         gameViewModel.getItemList().let {
+            lookUp[it[0].id] = item1RootView
             item1RootView.tag = it[0]
-            gameItem1TextView.text = it[0].name
+            (item1RootView.findViewById(R.id.template_item_name) as TextView).text = it[0].name
 
-            gameItem2TextView.text = it[1].name
+            lookUp[it[1].id] = item2RootView
             item2RootView.tag = it[1]
+            (item2RootView.findViewById(R.id.template_item_name) as TextView).text = it[1].name
 
-            gameItem3TextView.text = it[2].name
+            lookUp[it[2].id] = item3RootView
             item3RootView.tag = it[2]
+            (item3RootView.findViewById(R.id.template_item_name) as TextView).text = it[2].name
 
-            gameItem4TextView.text = it[3].name
+            lookUp[it[3].id] = item4RootView
             item4RootView.tag = it[3]
+            (item4RootView.findViewById(R.id.template_item_name) as TextView).text = it[3].name
         }
     }
 
@@ -126,34 +124,12 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
             val imageBitmap = data?.extras?.get("data") as Bitmap
             val imageByteArray = Helper.bitmapToByteArray(imageBitmap)
 
-            when (requestCode) {
-                REQUEST_IMAGE_CAPTURE_1 -> {
-                    setCapturedImage(item1RootView, imageBitmap)
-                    verifyImageWithServer(item1RootView, ItemMatchRequest(
-                            imageLabel = gameItem1TextView.text.toString(),
-                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
-                }
-                REQUEST_IMAGE_CAPTURE_2 -> {
-                    setCapturedImage(item2RootView, imageBitmap)
-                    verifyImageWithServer(item2RootView, ItemMatchRequest(
-                            imageLabel = gameItem2TextView.text.toString(),
-                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
-                }
+            val itemMatchRequest = ItemMatchRequest(
+                    imageLabel = getItemName(requestCode),
+                    image = Base64.encodeToString(imageByteArray, NO_WRAP))
 
-                REQUEST_IMAGE_CAPTURE_3 -> {
-                    setCapturedImage(item3RootView, imageBitmap)
-                    verifyImageWithServer(item3RootView, ItemMatchRequest(
-                            imageLabel = gameItem3TextView.text.toString(),
-                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
-                }
-                REQUEST_IMAGE_CAPTURE_4 -> {
-                    setCapturedImage(item4RootView, imageBitmap)
-                    verifyImageWithServer(item4RootView, ItemMatchRequest(
-                            imageLabel = gameItem4TextView.text.toString(),
-                            image = Base64.encodeToString(imageByteArray, NO_WRAP)))
-                }
-                else -> throw RuntimeException("Unknown camera request id received")
-            }
+            setCapturedImage(getItemRootView(requestCode), imageBitmap)
+            verifyImageWithServer(getItemRootView(requestCode), itemMatchRequest)
         }
     }
 
@@ -163,13 +139,13 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
 
     private fun verifyImageWithServer(rootView: RelativeLayout, itemMatchRequest: ItemMatchRequest) {
         Log.d(MY_TAG, "Match Request sent for ${itemMatchRequest.imageLabel}")
-        gameViewModel.matchItem(itemMatchRequest)
-        .observeOnce(this, { resultStatus ->
+        gameViewModel.matchItem(itemMatchRequest).observeOnce(this, { resultStatus ->
             updateUIPostVerify(rootView, resultStatus)
         })
     }
 
     private fun updateUIPostVerify(rootView: RelativeLayout, resultStatus: ResultStatus) {
+        progressBar3.visibility = View.GONE
         when (resultStatus) {
             is ResultStatus.Success -> {
                 Log.d(MY_TAG, "Match response received ${resultStatus.data}")
@@ -187,14 +163,17 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
         }
     }
 
+    private fun getItemName(itemId: Int): String {
+        return ((lookUp[itemId] as RelativeLayout).tag as ItemResponse).name
+    }
+
+    private fun getItemRootView(itemId: Int): RelativeLayout {
+        return lookUp[itemId]!!
+    }
+
     override fun onClick(v: View?) {
-        when ((v as RelativeLayout).id) {
-            R.id.game_item_1_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_1)
-            R.id.game_item_2_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_2)
-            R.id.game_item_3_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_3)
-            R.id.game_item_4_container -> startCameraToCaptureImage(REQUEST_IMAGE_CAPTURE_4)
-            else -> throw RuntimeException("Unknown view found")
-        }
+        val itemId = (((v as RelativeLayout).tag) as ItemResponse).id
+        startCameraToCaptureImage(itemId)
     }
 
 }
