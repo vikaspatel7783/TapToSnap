@@ -26,20 +26,8 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
 
     private val MY_TAG = GameActivity::class.java.simpleName
 
-    private lateinit var item1RootView: RelativeLayout
-    private lateinit var item2RootView: RelativeLayout
-    private lateinit var item3RootView: RelativeLayout
-    private lateinit var item4RootView: RelativeLayout
-
-    private lateinit var progressBar1: ProgressBar
-    private lateinit var progressBar2: ProgressBar
-    private lateinit var progressBar3: ProgressBar
-    private lateinit var progressBar4: ProgressBar
-
     private lateinit var countDownTimer: TextView
-
     private var gameTimeElapsed = false
-
     private val lookUp = hashMapOf<Int, RelativeLayout>()
     private val gameTimerObserver = MutableLiveData<Long>()
     private val gameTimer = GameTimer(tickObserver = gameTimerObserver)
@@ -49,31 +37,38 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.game_layout)
 
-        initViewReference()
-        renderItemListResponse()
+        renderItemListResponseAndInitViews()
         initGameTimer()
     }
 
+    private fun renderItemListResponseAndInitViews() {
+        gameViewModel.getItemList().let {
+            val rootView1 = findViewById<RelativeLayout>(R.id.game_item_1_container)
+            rootView1.setOnClickListener(this)
+            lookUp[it[0].id] = rootView1
+            rootView1.tag = it[0]
+            (rootView1.findViewById(R.id.template_item_name) as TextView).text = it[0].name
 
-    private fun initViewReference() {
+            val rootView2 = findViewById<RelativeLayout>(R.id.game_item_2_container)
+            rootView2.setOnClickListener(this)
+            lookUp[it[1].id] = rootView2
+            rootView2.tag = it[1]
+            (rootView2.findViewById(R.id.template_item_name) as TextView).text = it[1].name
 
-        item1RootView = findViewById(R.id.game_item_1_container)
-        item1RootView.setOnClickListener(this)
+            val rootView3 = findViewById<RelativeLayout>(R.id.game_item_3_container)
+            rootView3.setOnClickListener(this)
+            lookUp[it[2].id] = rootView3
+            rootView3.tag = it[2]
+            (rootView3.findViewById(R.id.template_item_name) as TextView).text = it[2].name
 
-        item2RootView = findViewById(R.id.game_item_2_container)
-        item2RootView.setOnClickListener(this)
-
-        item3RootView = findViewById(R.id.game_item_3_container)
-        item3RootView.setOnClickListener(this)
-
-        item4RootView = findViewById(R.id.game_item_4_container)
-        item4RootView.setOnClickListener(this)
+            val rootView4 = findViewById<RelativeLayout>(R.id.game_item_4_container)
+            rootView4.setOnClickListener(this)
+            lookUp[it[3].id] = rootView4
+            rootView4.tag = it[3]
+            (rootView4.findViewById(R.id.template_item_name) as TextView).text = it[3].name
+        }
 
         countDownTimer = findViewById(R.id.game_text_timer)
-        progressBar1 = item1RootView.findViewById(R.id.progressBar)
-        progressBar2 = item2RootView.findViewById(R.id.progressBar)
-        progressBar3 = item3RootView.findViewById(R.id.progressBar)
-        progressBar4 = item4RootView.findViewById(R.id.progressBar)
     }
 
     private fun initGameTimer() {
@@ -84,26 +79,6 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
             }
             countDownTimer.text = "${secondsRemaining} seconds remains!"
         })
-    }
-
-    private fun renderItemListResponse() {
-        gameViewModel.getItemList().let {
-            lookUp[it[0].id] = item1RootView
-            item1RootView.tag = it[0]
-            (item1RootView.findViewById(R.id.template_item_name) as TextView).text = it[0].name
-
-            lookUp[it[1].id] = item2RootView
-            item2RootView.tag = it[1]
-            (item2RootView.findViewById(R.id.template_item_name) as TextView).text = it[1].name
-
-            lookUp[it[2].id] = item3RootView
-            item3RootView.tag = it[2]
-            (item3RootView.findViewById(R.id.template_item_name) as TextView).text = it[2].name
-
-            lookUp[it[3].id] = item4RootView
-            item4RootView.tag = it[3]
-            (item4RootView.findViewById(R.id.template_item_name) as TextView).text = it[3].name
-        }
     }
 
     private fun startCameraToCaptureImage(requestId: Int) {
@@ -138,6 +113,7 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     }
 
     private fun verifyImageWithServer(rootView: RelativeLayout, itemMatchRequest: ItemMatchRequest) {
+        showProgressbar(rootView, true)
         Log.d(MY_TAG, "Match Request sent for ${itemMatchRequest.imageLabel}")
         gameViewModel.matchItem(itemMatchRequest).observeOnce(this, { resultStatus ->
             updateUIPostVerify(rootView, resultStatus)
@@ -145,7 +121,7 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
     }
 
     private fun updateUIPostVerify(rootView: RelativeLayout, resultStatus: ResultStatus) {
-        progressBar3.visibility = View.GONE
+        showProgressbar(rootView, false)
         when (resultStatus) {
             is ResultStatus.Success -> {
                 Log.d(MY_TAG, "Match response received ${resultStatus.data}")
@@ -161,6 +137,10 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
                 Toast.makeText(this, "Error in verify item", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    private fun showProgressbar(rootView: RelativeLayout, show: Boolean) {
+        rootView.findViewById<ProgressBar>(R.id.progressBar).visibility = if (show) View.VISIBLE else View.GONE
     }
 
     private fun getItemName(itemId: Int): String {
