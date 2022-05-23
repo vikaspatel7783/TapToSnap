@@ -43,32 +43,30 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
 
     private fun renderItemListResponseAndInitViews() {
         gameViewModel.getItemList().let {
+
             val rootView1 = findViewById<RelativeLayout>(R.id.game_item_1_container)
             rootView1.setOnClickListener(this)
-            lookUp[it[0].id] = rootView1
-            rootView1.tag = it[0]
-            (rootView1.findViewById(R.id.template_item_name) as TextView).text = it[0].name
+            applyValues(it[0], rootView1)
 
             val rootView2 = findViewById<RelativeLayout>(R.id.game_item_2_container)
             rootView2.setOnClickListener(this)
-            lookUp[it[1].id] = rootView2
-            rootView2.tag = it[1]
-            (rootView2.findViewById(R.id.template_item_name) as TextView).text = it[1].name
+            applyValues(it[1], rootView2)
 
             val rootView3 = findViewById<RelativeLayout>(R.id.game_item_3_container)
             rootView3.setOnClickListener(this)
-            lookUp[it[2].id] = rootView3
-            rootView3.tag = it[2]
-            (rootView3.findViewById(R.id.template_item_name) as TextView).text = it[2].name
+            applyValues(it[2], rootView3)
 
             val rootView4 = findViewById<RelativeLayout>(R.id.game_item_4_container)
             rootView4.setOnClickListener(this)
-            lookUp[it[3].id] = rootView4
-            rootView4.tag = it[3]
-            (rootView4.findViewById(R.id.template_item_name) as TextView).text = it[3].name
+            applyValues(it[3], rootView4)
         }
-
         countDownTimer = findViewById(R.id.game_text_timer)
+    }
+
+    private fun applyValues(itemResponse: ItemResponse, rootView: RelativeLayout) {
+        lookUp[itemResponse.id] = rootView
+        rootView.tag = itemResponse
+        (rootView.findViewById(R.id.template_item_name) as TextView).text = itemResponse.name
     }
 
     private fun initGameTimer() {
@@ -86,6 +84,7 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
             Toast.makeText(this, "Game timer elapsed. Please re-open app to play again", Toast.LENGTH_LONG).show()
             return
         }
+
         val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
         try {
             startActivityForResult(takePictureIntent, requestId)
