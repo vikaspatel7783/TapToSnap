@@ -131,9 +131,8 @@ class GameActivity: AppCompatActivity(), View.OnClickListener {
                 }
             }
             is ResultStatus.Failure -> {
-                rootView.setBackgroundColor(this.getColor(R.color.red))
                 System.out.println(resultStatus.exception)
-                Toast.makeText(this, "Error in verify item", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Error in communicating with server", Toast.LENGTH_SHORT).show()
             }
         }
     }
