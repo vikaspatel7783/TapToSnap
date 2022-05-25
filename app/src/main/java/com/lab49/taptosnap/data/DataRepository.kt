@@ -25,7 +25,7 @@ class DataRepository {
     }
 
     fun getCachedItemList(): List<ItemResponse> {
-        return CachedData.itemList
+        return DataHolder.itemList
     }
 
 
